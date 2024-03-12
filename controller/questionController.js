@@ -1,70 +1,42 @@
-
-const uuid= require('uuid')
 const dbConnection = require("../db/dbConfig");
 
+async function postQuestion(req, res) {
+  const { questionid, userid, title, description, tag } = req.body;
+  if (!questionid || !userid || !title || !description || !tag) {
+    return res.status(400).json({ msg: "please provide all required fields" });
+  }
 
-async function question(req, res) {
-	const { title, description, tag } = req.body;
-	if (!title|| !description) {
-		return res
-		.status(400)
-		.json({ msg: "Please provide your question." });
-	}
-	const questionid = uuid.v4();
-	const userid = req.user.userid;
+  try {
+    await dbConnection.query(
+      "INSERT INTO questions (questionid,userid,title,description,tag) VALUES (?,?,?,?,?)",
+      [questionid, userid, title, description, tag]
+    );
+    return res.status(201).json({ msg: "question posted redirected to home" });
+  } catch (error) {
+    console.log(error.message);
+    return res
+      .status(500)
+      .json({ msg: "something went wrong, try again later" });
+  }
+}
+async function allQuestion(req, res) {
+  try {
+    const [allquestion] = await dbConnection.query(`
+      SELECT q.questionid, q.userid, q.title, q.description, u.username
+      FROM questions q
+      JOIN users u ON q.userid = u.userid
+      ORDER BY q.id DESC
+  `);
 
-	try {
-		await dbConnection.query(
-			"INSERT INTO questions ( questionid,title, description, tag, userid) VALUES (?,?,?,?,?)",
-			[questionid, title, description, tag, userid]
-		);
-		return res.status(201).json({ msg: "Question inserted" });
-	} catch (error) {
-		console.log(error);
-		return res.status(500).json({ msg: "Something went wrong" });
-	}
+    return res
+      .status(200)
+      .json({ msg: "all question retrieved succesfully", allquestion });
+  } catch (error) {
+    console.log(error.message);
+    return res
+      .status(500)
+      .json({ msg: "something went wrong, try again later" });
+  }
 }
 
-
-
-
-	async function allQuestions(req, res) {
-		try {
-			// Perform a SELECT query to fetch questions from the database
-			const questions = await dbConnection.query("SELECT q.questionid, q.description, q.title, u.username FROM questions q JOIN users u ON q.userid = u.userid ORDER BY id DESC;" );
-         
-			// Send the retrieved questions as a JSON response
-			res.status(200).json(questions);
-		} catch (error) {
-			console.log(error);
-			res
-				.status(500)
-				.json({ msg: "Something went wrong while fetching questions" });
-		}
-	}
-
-
-
-	async function singleQuestion(req, res) {
-		const questionId = req.params.questionid;
-        console.log(questionId)
-		try {
-			// Perform a SELECT query to fetch a single question by its ID
-			const query = "SELECT * FROM questions WHERE questionid = ?";
-			const [question] = await dbConnection.query(query, [questionId]);
-
-			if (question.length === 0) {
-				return res.status(404).json({ msg: "Question not found" });
-			}
-
-			// Send the retrieved question as a JSON response
-			res.status(200).json(question[0]);
-		} catch (error) {
-			console.log(error);
-			res
-				.status(500)
-				.json({ msg: "Something went wrong while fetching the question" });
-		}
-	}
-
-module.exports = { question, allQuestions, singleQuestion };
+module.exports = { postQuestion, allQuestion };

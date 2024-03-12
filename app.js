@@ -11,6 +11,7 @@ const dbConnection = require("./db/dbConfig");
 const userRoutes = require("./routes/userRoute");
 const questionRoutes = require("./routes/questionRoute");
 const authMiddleware = require("./middleware/authMiddleware");
+const answerRoutes = require("./routes/answerRoute");
 
 //json middleware to extract json data
 app.use(express.json());
@@ -18,7 +19,9 @@ app.use(express.json());
 app.use("/api/users", userRoutes);
 //question routes middleware
 app.use("/api/questions", authMiddleware, questionRoutes);
-//answer middleware
+
+//answer routes middleware
+app.use("/api/answers", authMiddleware, answerRoutes);
 
 async function start() {
   try {

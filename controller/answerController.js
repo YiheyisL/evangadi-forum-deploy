@@ -1,50 +1,43 @@
 const dbConnection = require("../db/dbConfig");
 
-// Function to post an answer to the answers table
 async function postAnswer(req, res) {
-  const questionId = req.params.questionid;
-  const userid = req.user.userid;
-  const answerText = req.body.answer;
-
-  try {
-    const answerQuery =
-      "INSERT INTO answers (questionid, userid,  answer) VALUES (?,?, ?)";
-    await dbConnection.query(answerQuery, [questionId, userid, answerText]);
-    console.log(userid);
-    console.log(answerText);
-    console.log(questionId);
-
-    if (answerText.length === 0) {
-      return res.status(404).json({ msg: "please provide your answer" });
-    }
-
-    res.status(201).json({ msg: "Answer posted successfully" });
-  } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ msg: "Something went wrong while posting the answer" });
+  const { userid, questionid, answer } = req.body;
+  if (!questionid || !userid || !answer) {
+    return res.status(400).json({ msg: "please provide all required fields" });
   }
-}
-
-async function answers(req, res) {
+  //insert data into answers table
   try {
-    const { questionid } = req.params;
-
-    const [answers] = await dbConnection.query(
-      `SELECT answers.answer, users.username FROM answers INNER JOIN users ON answers.userid = users.userid
-            WHERE answers.questionid = ?`,
-      [questionid]
+    await dbConnection.query(
+      "INSERT INTO answers (userid,questionid,answer) VALUES (?,?,?)",
+      [userid, questionid, answer]
     );
-
-    // Send the retrieved answers as a JSON response
-    res.status(200).json({ answers });
+    return res.status(201).json({ msg: "answer posted" });
   } catch (error) {
-    console.log(error);
-    res
+    console.log(error.message);
+    return res
       .status(500)
-      .json({ msg: "Something went wrong while fetching answers" });
+      .json({ msg: "something went wrong, try again later" });
+  }
+}
+async function allAnswer(req, res) {
+  // const questionid = req.query.questionid;
+
+  const questionId = req.headers["questionid"];
+  // console.log(questionId)
+  try {
+    const [allanswer] = await dbConnection.query(
+      "SELECT answer from answers where questionid=?",
+      [questionId]
+    );
+    return res
+      .status(200)
+      .json({ msg: "all answer retrieved succesfully", allanswer });
+  } catch (error) {
+    console.log(error.message);
+    return res
+      .status(500)
+      .json({ msg: "something went wrong, try again later" });
   }
 }
 
-module.exports = { postAnswer, answers };
+module.exports = { postAnswer, allAnswer };
